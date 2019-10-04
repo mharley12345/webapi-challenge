@@ -12,10 +12,8 @@ I need this code, just don't know where, perhaps should make some middleware, do
 
 Go code!
 */
-require('dotenv').config()
-const server = require('./server.js')
-const port = process.env.PORT || 5000;
+const server = require("./server");
 
-server.listen(port, () => {
-    console.log(`\n* Server Running on http://localhost:${port} *\n`);
-  });
+const port = 4000;
+
+server.listen(port, () => console.log(`\nAPI running on port ${port}\n`));

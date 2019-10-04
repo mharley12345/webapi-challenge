@@ -1,49 +1,104 @@
-const express = require('express')
-const projectsDB = require('../data/helpers/projectModel')
+const express = require("express");
 
-const router = express.Router()
+const Project = require("../data/helpers/projectModel");
+const actionsRouter = require("../routes/actionsRouter");
+const router = express.Router();
 
-router.get('/',(req,res)=>{
-    projectsDB.get()
-    .then(project =>{
-        res.status(200).json({ projects: project})
-    })
-    .catch(err =>{
-        res.status(500).json({ errorMessage:`${err}`})
-    })
-})
-router.post('/',(req,res) =>{
-    const body = req.body;
-   
-     projectsDB.insert(body)
-    .then(project => {
-        res.status(201).json({ newProject: project })
-    })
-    .catch(err => {
-        res.status(500).json({ message: `${err}` })
-    })
+//Getting all Projects
+router.get("/", (req, res) => {
+  Project.get()
+    .then(project => res.status(200).json(project))
+    .catch(() => {
+      res.status(500).json({ errorMessage: "Couldn't retrieve all Projects" });
+    });
 });
-router.put("/:id", (req,res) =>{
-    projectsDB.update(req.params.id,req.body)
-    .then(()=>{
-        projectsDB.get(req.params.id)
-        .then(action=>{
-            res.status(200).json(action)
-        })
-    })
-    .catch(err => {
-        res.status(500).json({ errorMessage: `${err}` })
-    })
-})
 
-router.delete('/:id',(req,res)=>{
-    projectsDB.remove(req.params.id)
-    .then(() => {
-        res.status(200).json({ deleted : req.project})
-    })
-    .catch(err => {
-        res.status(500).json({ errorMessage: `${err}` })
-    })
-})
+//Getting a specific project
+router.get("/:id", validateProjectId, (req, res) => {
+  Project.get(req.params.id).then(project =>
+    res
+      .status(200)
+      .json(project)
+      .catch(() =>
+        res
+          .status(500)
+          .json({ errorMessage: "Couldnt sent the specific project" })
+      )
+  );
+});
 
-module.exports = router
+//Getting all actions for a project
+router.get("/:id/actions", validateProjectId, (req, res) => {
+  Project.getProjectActions(req.params.id)
+    .then(actions => res.status(200).json(actions))
+    .catch(() =>
+      res
+        .status(500)
+        .json({ errorMessage: "Error with getting all actions for a project" })
+    );
+});
+
+//Adding a new project
+router.post("/", validateProjectResource, (req, res) => {
+  Project.insert(req.body)
+    .then(add => res.status(201).json({ Created: add }))
+    .catch(() =>
+      res
+        .status(500)
+        .json({ errorMessage: "Error with adding new project to database" })
+    );
+});
+
+//Deleting a project
+router.delete("/:id", validateProjectId, (req, res) => {
+  Project.remove(req.params.id)
+    .then(deleted => res.status(200).json({ recordsDeleted: deleted }))
+    .catch(() =>
+      res
+        .status(500)
+        .json({ errorMessage: "Error in removing specific project" })
+    );
+});
+
+//Updating a project
+router.put("/:id", [validateProjectId, validateProjectResource], (req, res) => {
+  Project.update(req.params.id, req.body)
+    .then(update => res.status(202).json({ projectUpdated: update }))
+    .catch(() =>
+      res
+        .status(500)
+        .json({ errorMessage: "Error updating the specific Project" })
+    );
+});
+
+//Middleware will check if invalid project no is used so routing will stop
+router.use("/:id/actions", validateProjectId, actionsRouter);
+
+//custom middleware to test incoming resources
+function validateProjectResource(req, res, next) {
+  if (req.body.name === undefined) {
+    res.status(400).json({
+      errorMessage: "Make sure your project has name field"
+    });
+  } else if (req.body.description === undefined) {
+    res.status(400).json({
+      errorMessage: "Make sure your project has description field"
+    });
+  } else {
+    next();
+  }
+}
+function validateProjectId(req, res, next) {
+  Project.get(req.params.id)
+    .then(project => {
+      if (project) {
+        next();
+      } else {
+        res.status(400).json({ errorMessage: "Invalid Project ID" });
+      }
+    })
+    .catch(() =>
+      res.status(500).json({ errorMessage: "Error with accessing Projects" })
+    );
+}
+module.exports = router;
