@@ -1,19 +1,26 @@
-const express = require("express");
-const projectsRouter = require("./routes/projectsRouter");
+const express = require('express')
 
-const server = express();
-server.use(express.json());
+const projectsRoute = require('./routes/projectsRoute')
+const actionsRoute = require('./routes/actionsRoute')
+
+const server = express()
+server.use(express.json())
 
 function logger(req, res, next) {
-  console.log(`${new Date().toISOString()} ${req.method} to ${req.url}`);
-  next();
+    console.log(`[${new Date().toISOString()}] ${req.method} to ${req.url}`)
+
+    next()
 }
-server.use(logger);
-server.use("/projects", projectsRouter);
 
-server.get("/", (req, res) => {
-  res.send(`<h2>WEB API SPRINT</h2>`);
-});
+server.use(logger)
 
-//custom middleware
-module.exports = server;
+// Route handling
+server.use('/projects', projectsRoute)
+server.use('/actions', actionsRoute)
+
+// Hello World test
+server.get('/', (req,res) => {
+    res.json('Hello World')
+})
+
+module.exports = server
